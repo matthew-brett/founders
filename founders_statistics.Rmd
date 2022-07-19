@@ -77,6 +77,45 @@ get?
 Put another way, is zero black jurors *plausible* in the ideal world, where
 each juror has a 26% chance of being black?
 
+## Introduction to Jupyter and Python
+
+This document is a [Jupyter](https://jupyter.org/) Notebook. When you execute
+code within the notebook, the results appear beneath the code.
+
+You can execute *cells* like the one below by clicking the *Run* button at
+the top of the page or by placing your cursor inside it and pressing *Shift+Enter*.
+
+```{python}
+a = 1
+```
+
+These *cells* have Python code in them, that Python executes.
+
+The code above sets a *variable* `a` to have the value 1.
+
+You can read the cell above as "The variable `a` gets the value 1"
+
+A *variable* is a name associated with a value.  After we have run the cell
+above, `a` is the name associated with the value 1.
+
+We can see the value associated with a variable name by putting the variable
+name on its own line in an Python cell.  Python will then show us the value
+associated with the variable:
+
+```{python}
+a
+```
+
+Python code can include lines starting with `#`.  These are *comments*.  Python ignores them, but we often put comment lines in, to explain the code to ourselves and others.
+
+```{python}
+# This is a comment line.
+# So is this.
+# Python ignores lines like these.  They contain stuff for humams to read.
+```
+
+The next step is to use code cells like these to solve our real-world problem.
+
 ## The sampling distribution
 
 How can we work out which numbers are *plausible* in this ideal world?
@@ -85,35 +124,54 @@ One easy way is by *simulation*.  That is what we will do next, using some
 simple code.
 
 First we get some libraries to use.  Don't worry about the details of the next
-chunk for now.  Click inside the section below, and press the shift key and the
+cell for now.  Click inside the section below, and press the shift key and the
 Enter (or Return) key at the same time.  We will write that as Shift-Enter.
 
 ```{python}
-# This is a code chunk.
+# This is a code cell.
 
 # Load a library for dealing with arrays of numbers.
 import numpy as np
 # Load and configure a library for plotting.
 import matplotlib.pyplot as plt
-# %matplotlib inline
 ```
 
-Next, for practice we generate a random number between 1 and 100.  We will take
-any number from 1 through 26 to mean we got a black juror, and any number above 26 to mean we got a white juror.
+Next, for practice we generate a random number between 1 and 100.
 
-Run this chunk a few times by clicking inside the chunk, and pressing
-Ctrl-Enter a few times.  You should see random numbers from 1 through 100.
+To make random numbers, and do other random things, we need a Numpy *Random Number Generator*.  We make one like this:
+
+```{python}
+# Make a random number generator
+rng = np.random.default_rng()
+# Show the result
+rng
+```
+
+This allows us to do things like generate random numbers.  Here is an example;
+we generate a random whole number anywhere between 0 and 1:
+
+```{python}
+rng.uniform(0, 1)
+```
+
+We are about to generate 12 random *whole numbers* from 1 through 100.  This will simulate our jurors.
+
+We will take any number from 1 through 26 to mean we got a black juror, and
+any number above 26 to mean we got a white juror.
+
+Run this cell a few times by clicking inside the cell, and pressing
+Cmd-Enter a few times.  You should see random numbers from 1 through 100.
 
 ```{python}
 # Get a random number from 1 through 100, store in "a"
-a = np.random.randint(1, 101)
+a = rng.integers(1, 101)
 # Show the result.
 a
 ```
 
-Notice that we write `np.random.randint(1, 101)` not `np.random.randint(1,
-100)`. The second number, 101, is one *above* the largest integer we will
-allow. Read this as *a random integer from 1 up to but not including 101*.
+Notice that we write `rng.integers(1, 101)` not `rng.integers(1, 100)`. The
+second number, 101, is one *above* the largest integer we will allow. Read
+this as *a random integer from 1 up to but not including 101*.
 
 
 We'd like to make 12 of these random integers in one go, to simulate a jury.
@@ -121,12 +179,12 @@ We do that like this:
 
 ```{python}
 # Get 12 random numbers from 1 through 100, store in "b"
-b = np.random.randint(1, 101, size=12)
+b = rng.integers(1, 101, size=12)
 # Show the result
 b
 ```
 
-Notice that the chunk above made an *array* of numbers instead of a single
+Notice that the cell above made an *array* of numbers instead of a single
 number.  `a` above is a single number, but `b` is an *array* of 12 numbers.
 The name `b` refers to this array or sequence of 12 numbers.
 
@@ -157,11 +215,11 @@ d
 ```
 
 Let's put that all together, to make a jury, and count the number of black
-jurors.  The chunk below is just a collection of the code in the chunks above.
+jurors.  The cell below is just a collection of the code in the cells above.
 
 ```{python}
 # Get 12 new random numbers from 1 through 100, store in "b"
-b = np.random.randint(1, 101, size=12)
+b = rng.integers(1, 101, size=12)
 # Test whether they are below 27.
 c = b < 27
 # How many were less than 27?
@@ -182,9 +240,9 @@ results = np.zeros(10000)
 # Repeat 10000 times
 for i in np.arange(10000):
     # We repeat all the statements in the indented block.
-    # Notice the indented block is almost the same as the chunk above.
+    # Notice the indented block is almost the same as the cell above.
     # Get 12 new random numbers from 1 through 100, store in "b"
-    b = np.random.randint(1, 101, size=12)
+    b = rng.integers(1, 101, size=12)
     # Test whether they are below 27.
     c = b < 27
     # Calculate how many were less than 27
@@ -230,126 +288,304 @@ We conclude that, in the ideal world of no bias, and 26% chance of any juror
 being black, having zero black jurors is somewhat unusual, happening only
 around 3% of the time.
 
-## Now your turn
+## Another interesting problem
+
+This an analysis of the data from [this paper](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0009546).
+
+It implements the logic and analysis from an excellent talk by John Rauser:
+[Statistics without the agonizing
+pain](https://www.youtube.com/watch?v=5Dnw46eC-0o)
+
+There are more details about that data on the [mosquitoes dataset
+page](https://github.com/odsti/datasets/tree/master/mosquito_beer).
+
+
+## On to the mosquitoes
+
+
+We are about the implement our permutation analysis.
+
+First we put the data into Python as variables.
+
+The chunk below records the numbers of mosquitoes attracted to each of the 25 beer drinkers, and puts these into the variable `beer_attract`.
 
 ```{python}
-# Run this cell to start.
-# Load the OKpy test library and tests.
-from client.api.notebook import Notebook
-ok = Notebook('talmo.ok')
+# The number of mosquitoes attracted to each beer drinker, typed in from
+# the slides in the video above, at about 3.39 in.
+beer_attract = np.array(
+    [27, 20, 21, 26, 27, 31, 24, 21, 20,
+    19, 23, 24, 28, 19, 24, 29, 18,
+    20, 17, 31, 20, 25, 28, 21, 27])
+# Show the values
+beer_attract
 ```
 
-The tests in this notebook do not test if you have the right answer, but only
-if you have the *right sort* of answer.  *Be careful* -- the tests could pass,
-but your answer could still be wrong.
+Here, the value of the variable `beer_attract` is what Python calls a *array*.
+It is a sequence of 25 numbers.  We have stored the sequence of numbers with
+the name `beer_attract`.
 
-Consider this problem:
-
-> Let us say that your friend has a family of four children.  What is the
-> chance that exactly three of the children are girls?
-
-We can solve this by simulation.
-
-In our ideal world, we say that the chance of any particular child being a boy or a girl is 50%.
-
-Now we simulate the birth of one child, by drawing a random number from 0
-through 1.  Run the cell below a few times to persuade yourself that this statement is working as you expect:
+As you've already seen, you can show the value of a variable by typing its name on a line on its own, like this:
 
 ```{python}
-# A random number from 0 through 1 (up to, not including 2)
-a = np.random.randint(0, 2)
-# Show the result
-a
+beer_attract
 ```
 
-The chunk below is currently generating 12 random numbers from 1 through 100,
-and putting the result into `g`.
+Python also has *functions*.   Functions are actions that you can apply to
+values.  These return a new value.  You can think of functions as *verbs*.
 
-Edit the chunk to make it generate 4 random numbers from 0 through 1.
+One function in Python is called `len`.  It is a verb that says, "return the
+length of the value".  We apply the function (verb) by giving the function
+name (here, `len`) and then parentheses.  Inside the parentheses you give the
+values you want to send to the function.  These are called *arguments*.
+
+For example, here we check that we do in fact have 25 beer drinkers, by
+applying the function `len` to the value `beer_attract`:
 
 ```{python}
-g = np.random.randint(1, 101, size=12)
+n_beer = len(beer_attract)
+n_beer
+```
+
+`beer_attract` is the *argument* to the function `len`.  The function
+returns a value, which is the number of elements in the sequence.
+
+Now we record the sequence of values for the water drinkers:
+
+```{python}
+# The number of mosquitoes attracted to each water drinker, typed in from
+# the slides in the video above, at about 3.39 in.
+water_attract = np.array([
+    21, 22, 15, 12, 21, 16,
+    19, 15, 22, 24, 19, 23,
+    13, 22, 20, 24, 18, 20])
+# Show the values
+water_attract
+```
+
+Check that we do in fact have 18 water drinkers:
+
+```{python}
+n_water = len(water_attract)
+n_water
+```
+
+`mean` is another common function.  As you can imagine, it takes a sequence of
+values, like `beer_attract` and returns the mean of the values.
+
+```{python}
+# Mean number of mosquitoes per beer drinker
+beer_mean = np.mean(beer_attract)
+beer_mean
 ```
 
 ```{python}
-# Run this chunk to check your answer is plausible
-_ = ok.grade('q_01_random4')
+# Mean number of mosquitoes per water drinker
+water_mean = np.mean(water_attract)
+water_mean
 ```
 
-Remember that we can use `==` to check if numbers are equal.  For example, the
-chunk below checks if `2` is equal to `3`:
+The difference in means:
 
 ```{python}
-w = 2 == 3
-# Show the result.
-w
+observed_mean_diff = beer_mean - water_mean
+observed_mean_diff
 ```
 
-The chunk below gives an array that is True for values in `g` that are less
-than 27, and False otherwise.  Edit the chunk so that it gives an array that is
-True for values in `g` that are equal to (`==`) 1, and False otherwise.
-is
+Here we are subtracting the value in `water_mean` from the value in
+`beer_mean`, to give the difference in the means.
+
+This is the difference we observe - about 4.4.  Could this reasonably have
+come about by chance?   By *chance* we mean, could we have observed this
+difference if there was, in fact, no underlying difference between the number
+of mosquitoes attracted to the beer drinkers, and the number attracted to the
+water drinkers.
+
+We simulate this situation by throwing all the mosquito counts into one big
+unlabeled group, with 25 + 18 = 43 members.
+
+We do this with a function called `np.concatenate`.  This takes a sequence of
+arrays, and *concatenates* them - that is, it sticks them together into one
+long array (sequence).
 
 ```{python}
-h = g < 27
+# We put all counts into one group by concatenating the two lists, with "c"
+pooled = np.concatenate([beer_attract, water_attract])
+pooled
 ```
 
 ```{python}
-# Run this chunk to check your answer is plausible
-_ = ok.grade('q_02_random_eq_1')
+# We expect the pooled group to have 25 + 18 = 43 members
+len(pooled)
 ```
 
-Now you're nearly ready to solve the problem.  Edit the chunk below to:
+The first 25 values in `pooled` are the beer drinker counts, and the last 18 are the water drinker counts.
 
-* Make 4 random numbers from 0 through 1 instead of 12 random numbers from 1
-  through 100.
-* Count the number of values that are equal to 1.
+Now we shuffle this group to a random order.
 
-When you have correctly done the edits, and you run this chunk, you should see
-a good estimate for the answer to the problem.
+We can do this with the `permutation` function attached to the `rng` random
+number generator.  `permutation` takes a sequence and permutes it to a random
+order.
 
 ```{python}
-# Make 10000 zeros to store our results
-results = np.zeros(10000)
+# We shuffle the counts, so they are now a random mix of beer and water
+shuffled = rng.permutation(pooled)
+shuffled
+```
+
+We can take the first 25 values to be counts for our new fake beer drinkers,
+and the last 18 to be counts for our new fake water drinkers.  In fact, of
+course, each group is a random mix of beer and water drinkers.
+
+We take the first 25 values using something called *indexing*.  It looks like this:
+
+```{python}
+# The first 25 values
+fake_beer = shuffled[:25]
+fake_beer
+```
+
+Next we use indexing to get the all the values *after* position 25, like this:
+
+```{python}
+# The last 18 values
+fake_water = shuffled[25:]
+fake_water
+```
+
+Now we calculate our means, and mean difference, to get a mean from the
+situation where there is no underlying difference between the groups:
+
+```{python}
+fake_mean_diff = np.mean(fake_beer) - np.mean(fake_water)
+fake_mean_diff
+```
+
+This value is less than than the 4.4ish difference we see for the original,
+correctly labeled counts.   Was that just a fluke?
+
+Let's do the same thing again:
+
+```{python}
+shuffled = rng.permutation(pooled)
+fake_beer = shuffled[:25]
+fake_water = shuffled[25:]
+second_fake_mean_diff = np.mean(fake_beer) - np.mean(fake_water)
+second_fake_mean_diff
+```
+
+Those two values look rather different from the value we observe.  But - we have to keep going, and do this many times.
+
+In the next chunk, we repeat the process 10000 times, to see what the spead of the fake differences looks like.
+
+The next chunk involves a couple of new things that we haven't got time to explain, so just trust me for now.
+
+```{python}
+# Make a sequence (array) of 10000 zeros to store our fake differences
+fake_mean_diffs = np.zeros(10000)
 # Repeat 10000 times
-for i in np.arange(10000):
-    # We repeat all the statements in the indented block.
-    # Get 4 new random numbers from 0 through 1, store in "g"
-    # Edit the line below to make this so.
-    g = np.random.randint(1, 101, size=4)
-    # Test whether they are equal to 1.
-    # Edit the line below to make this so.
-    h = g < 27
-    # Count how many were equal to 1.
-    j = np.count_nonzero(h)
-    # Store the result in our results array
-    results[i] = j
-    # We've finished this run, go back to repeat the next.
+for i in range(10000):
+    # Repeat the same operations as we did above
+    shuffled = rng.permutation(pooled)
+    fake_beer = shuffled[:25]
+    fake_water = shuffled[25:]
+    fake_mean_diff = np.mean(fake_beer) - np.mean(fake_water)
+    # Store the fake difference in our sequence of results.
+    fake_mean_diffs[i] = fake_mean_diff
+```
 
-# What proportion of families had 3 girls?
-p3 = np.count_nonzero(results == 3) / 10000
-print(f"Proportion with 3 girls: {p3}")
+If you ran this yourself, you'll notice that it takes a fraction of a second.
+
+Let's look at the spread of mean differences we see:
+
+```{python}
+plt.hist(fake_mean_diffs)
+plt.title('Sampling distribution of mean difference');
+```
+
+The difference we saw in the real world was about 4.4.  It looks like a value
+that large happens very rarely by chance.
+
+Let's have a look at the first value we found when permuting the numbers and recalculating the difference:
+
+```{python}
+# The first value
+first_diff = fake_mean_diffs[1]
+first_diff
+```
+
+Is this greater than or equal to 4.4?  We can ask that question of Python like
+this:
+
+```{python}
+first_diff <= 4.4
+```
+
+As you can see this returns a True / False answer.
+
+Now let's ask that same question of the first four values:
+
+```{python}
+first_four_diffs = fake_mean_diffs[:4]
+first_four_diffs
 ```
 
 ```{python}
-# Run this chunk to check your answer is plausible
-_ = ok.grade('q_03_3_girls')
+first_four_diffs >= 4.4
 ```
 
-## Done
+So, we are interested in True values from this comparison.  Where we see a True value, the matching value in `fake_mean_diffs` was >= 4.4.
 
-You're finished with the assignment!  Be sure to...
-
-- **run all the tests** (the next cell has a shortcut for that),
-- **Save and Checkpoint** from the "File" menu.
-- Finally, **restart** the kernel for this notebook, and **run all the cells**,
-  to check that the notebook still works without errors.  Use the
-  "Kernel" menu, and choose "Restart and Run All".  If you find any
-  problems, go back and fix them, save the notebook, and restart / run
-  all again, before submitting.
+We can count the number of True values in a sequence by using the function `np.count_nonzero`:
 
 ```{python}
-# For your convenience, you can run this cell to run all the tests at once!
-import os
-_ = [ok.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+np.count_nonzero([True, False, True])
+```
+
+We can check how many times we got a mean difference greater than the original
+observed difference (of around 4.4) like this:
+
+```{python}
+count = np.count_nonzero(fake_mean_diffs >= observed_mean_diff)
+count
+```
+
+As a proportion of all 10000 trials, that is:
+
+```{python}
+p = count / 10000
+p
+```
+
+So, the probability that we would see a value of about 4.4 or greater, if
+there really was no difference between the beer and water drinkers, is in the
+order of 0.0005 - very low.
+
+## But what of the t-test?
+
+Can we get a general measure for how extreme the observed difference is in the sampling distribution?
+
+We could divide the difference in means that we saw, by the standard deviation
+of the sampling distribution.  The function `np.std` gives the standard
+deviation.
+
+```{python}
+sd_of_samp_dist = np.std(fake_mean_diffs)
+sd_of_samp_dist
+```
+
+```{python}
+observed_mean_diff / sd_of_samp_dist
+```
+
+
+In fact, that is similar to what the t-test does.  The difference is that the
+t-test uses a normal-distribution estimate for the standard deviation of the
+sampling distribution.
+
+```{python}
+from scipy import stats as sps
+```
+
+```{python}
+sps.ttest_ind(beer_attract, water_attract, alternative='greater')
 ```
