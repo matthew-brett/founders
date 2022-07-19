@@ -1,0 +1,4 @@
+# https://www.blog.pythonlibrary.org/2018/04/12/adding-svg-files-in-reportlab/
+reportlab
+lxml
+svglib
