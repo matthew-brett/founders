@@ -1,0 +1,355 @@
+---
+jupyter:
+  jupytext:
+    notebook_metadata_filter: all,-language_info
+    split_at_heading: true
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.10.3
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+# A sampling problem
+
+We will soon find that we will need to think about randomness and probability
+in order to give sensible answers to many questions.
+
+We start with a legal question, about race discrimination in jury selection.
+
+## Attribution
+
+This example comes from the [Berkeley Foundations of Data Science course](https://www.inferentialthinking.com).
+
+## The problem - was jury selection biased?
+
+This example comes from a real court case and subsequent appeal to the US supreme court.
+
+In 1963, a court in Talladega County, Alabama sentenced a young man called
+Robert Swain to death.  All 12 of the jurors in Swain's case were white, but
+the population of eligible jurors at the time was 26% black and 74% white.
+
+Robert Swain and his legal team appealed this sentence all the way to the US
+Supreme Court, on the basis that aspects of his jury selection was biased
+against black jurors.
+
+The Supreme Court heard this case in 1965, and [denied Swain's
+appeal](https://en.wikipedia.org/wiki/Swain_v._Alabama). In its ruling, the
+Court wrote "... the overall percentage disparity has been small and reflects
+no studied attempt to include or exclude a specified number of Negroes."  Were they right?  How could they decide this question, using the data they have?
+
+The evidence that Swain's legal team presented was substantial, but, for the
+moment, let imagine that we are on the Supreme Court, and the *only*
+information we have is that there were no black jurors for Swain's trial.   Our
+job is to decide whether that fact is evidence for bias against black jurors.
+
+We will spend the next while building up the tools we need to answer this
+question.
+
+In the process we will discover many of the fundamental ideas in statistics.
+
+## A model of the world
+
+In the real world, we saw that none of Swain's jurors were black.
+
+We know that 26% of the eligible jurors were black.
+
+Now imagine a different, ideal world, where there is no bias against black jurors, and so any one of the 12 jurors has a 26% chance of being black.
+
+We might expect roughly 26% of the jurors to be black - that works out to
+*around* 3 black jurors.
+
+Why *around*?  Because we know, in this ideal world, that the 26% is only the
+*chance* that any one juror is black.  If we select 12 jurors, where each has a
+26% chance of being black, we will sometimes get 2 black jurors and sometimes
+we will get 3, or 4 or 1 or 5 black jurors.  It just depends on how the chance
+worked out, for each juror.  Put another way, it just depends on our *sample* -
+the actual set of jurors we got, in this ideal world.
+
+Now our question becomes - in this ideal world, where we know that the number
+of black jurors will vary just by chance, is zero a common number of jurors to
+get?
+
+Put another way, is zero black jurors *plausible* in the ideal world, where
+each juror has a 26% chance of being black?
+
+## The sampling distribution
+
+How can we work out which numbers are *plausible* in this ideal world?
+
+One easy way is by *simulation*.  That is what we will do next, using some
+simple code.
+
+First we get some libraries to use.  Don't worry about the details of the next
+chunk for now.  Click inside the section below, and press the shift key and the
+Enter (or Return) key at the same time.  We will write that as Shift-Enter.
+
+```{python}
+# This is a code chunk.
+
+# Load a library for dealing with arrays of numbers.
+import numpy as np
+# Load and configure a library for plotting.
+import matplotlib.pyplot as plt
+# %matplotlib inline
+```
+
+Next, for practice we generate a random number between 1 and 100.  We will take
+any number from 1 through 26 to mean we got a black juror, and any number above 26 to mean we got a white juror.
+
+Run this chunk a few times by clicking inside the chunk, and pressing
+Ctrl-Enter a few times.  You should see random numbers from 1 through 100.
+
+```{python}
+# Get a random number from 1 through 100, store in "a"
+a = np.random.randint(1, 101)
+# Show the result.
+a
+```
+
+Notice that we write `np.random.randint(1, 101)` not `np.random.randint(1,
+100)`. The second number, 101, is one *above* the largest integer we will
+allow. Read this as *a random integer from 1 up to but not including 101*.
+
+
+We'd like to make 12 of these random integers in one go, to simulate a jury.
+We do that like this:
+
+```{python}
+# Get 12 random numbers from 1 through 100, store in "b"
+b = np.random.randint(1, 101, size=12)
+# Show the result
+b
+```
+
+Notice that the chunk above made an *array* of numbers instead of a single
+number.  `a` above is a single number, but `b` is an *array* of 12 numbers.
+The name `b` refers to this array or sequence of 12 numbers.
+
+Now we want to test if the numbers are less than 27.  If the number is less
+than 27, this number represents a black juror in our ideal world.
+
+Here is the procedure for doing that:
+
+```{python}
+# Check whether each number in the array is less than 27
+c = b < 27
+# Show the result
+c
+```
+
+Notice that `c` is also an array, of the same length as `b`.  There is a True
+where the number was less than 27, and a False where the number was 27 or
+greater.  True in `c` means this was a black juror, in our ideal world, and
+False in `c` means this was a white juror.
+
+Finally, we can count the number of True values, and therefore, the number of black jurors in our simulated jury, with:
+
+```{python}
+# Count the number of True values in c
+d = np.count_nonzero(c)
+# Show the result
+d
+```
+
+Let's put that all together, to make a jury, and count the number of black
+jurors.  The chunk below is just a collection of the code in the chunks above.
+
+```{python}
+# Get 12 new random numbers from 1 through 100, store in "b"
+b = np.random.randint(1, 101, size=12)
+# Test whether they are below 27.
+c = b < 27
+# How many were less than 27?
+d = np.count_nonzero(c)
+# Show the result
+d
+```
+
+Run this a few times, to get a feel for which values come up often, and which
+values are less common.
+
+Finally, we want to repeat this process many times, and collect the result.
+Don't worry about the details here.
+
+```{python}
+# Make 10000 zeros to store our results
+results = np.zeros(10000)
+# Repeat 10000 times
+for i in np.arange(10000):
+    # We repeat all the statements in the indented block.
+    # Notice the indented block is almost the same as the chunk above.
+    # Get 12 new random numbers from 1 through 100, store in "b"
+    b = np.random.randint(1, 101, size=12)
+    # Test whether they are below 27.
+    c = b < 27
+    # Calculate how many were less than 27
+    d = np.count_nonzero(c)
+    # Store the result in our results array
+    results[i] = d
+    # We've finished this run, go back to repeat the next.
+```
+
+Notice that this took much less than a second.
+
+Look at the first 10 counts:
+
+```{python}
+results[:10]
+```
+
+Show the counts on a histogram:
+
+```{python}
+plt.hist(results);
+```
+
+How often do we see zero black jurors, of the 10000 juries we simulated?
+
+```{python}
+# Put True where the count was 0, and False otherwise.
+zero_black = results == 0
+# Count the number of Trues (therefore, the number of zeros).
+no_black_jurors = np.count_nonzero(zero_black)
+# Show the result.
+no_black_jurors
+```
+
+What *proportion* of the simulated juries had no black jurors?
+
+```{python}
+# Proportion of jury simulations where we got 0 black jurors.
+no_black_jurors / 10000
+```
+
+We conclude that, in the ideal world of no bias, and 26% chance of any juror
+being black, having zero black jurors is somewhat unusual, happening only
+around 3% of the time.
+
+## Now your turn
+
+```{python}
+# Run this cell to start.
+# Load the OKpy test library and tests.
+from client.api.notebook import Notebook
+ok = Notebook('talmo.ok')
+```
+
+The tests in this notebook do not test if you have the right answer, but only
+if you have the *right sort* of answer.  *Be careful* -- the tests could pass,
+but your answer could still be wrong.
+
+Consider this problem:
+
+> Let us say that your friend has a family of four children.  What is the
+> chance that exactly three of the children are girls?
+
+We can solve this by simulation.
+
+In our ideal world, we say that the chance of any particular child being a boy or a girl is 50%.
+
+Now we simulate the birth of one child, by drawing a random number from 0
+through 1.  Run the cell below a few times to persuade yourself that this statement is working as you expect:
+
+```{python}
+# A random number from 0 through 1 (up to, not including 2)
+a = np.random.randint(0, 2)
+# Show the result
+a
+```
+
+The chunk below is currently generating 12 random numbers from 1 through 100,
+and putting the result into `g`.
+
+Edit the chunk to make it generate 4 random numbers from 0 through 1.
+
+```{python}
+g = np.random.randint(1, 101, size=12)
+```
+
+```{python}
+# Run this chunk to check your answer is plausible
+_ = ok.grade('q_01_random4')
+```
+
+Remember that we can use `==` to check if numbers are equal.  For example, the
+chunk below checks if `2` is equal to `3`:
+
+```{python}
+w = 2 == 3
+# Show the result.
+w
+```
+
+The chunk below gives an array that is True for values in `g` that are less
+than 27, and False otherwise.  Edit the chunk so that it gives an array that is
+True for values in `g` that are equal to (`==`) 1, and False otherwise.
+is
+
+```{python}
+h = g < 27
+```
+
+```{python}
+# Run this chunk to check your answer is plausible
+_ = ok.grade('q_02_random_eq_1')
+```
+
+Now you're nearly ready to solve the problem.  Edit the chunk below to:
+
+* Make 4 random numbers from 0 through 1 instead of 12 random numbers from 1
+  through 100.
+* Count the number of values that are equal to 1.
+
+When you have correctly done the edits, and you run this chunk, you should see
+a good estimate for the answer to the problem.
+
+```{python}
+# Make 10000 zeros to store our results
+results = np.zeros(10000)
+# Repeat 10000 times
+for i in np.arange(10000):
+    # We repeat all the statements in the indented block.
+    # Get 4 new random numbers from 0 through 1, store in "g"
+    # Edit the line below to make this so.
+    g = np.random.randint(1, 101, size=4)
+    # Test whether they are equal to 1.
+    # Edit the line below to make this so.
+    h = g < 27
+    # Count how many were equal to 1.
+    j = np.count_nonzero(h)
+    # Store the result in our results array
+    results[i] = j
+    # We've finished this run, go back to repeat the next.
+
+# What proportion of families had 3 girls?
+p3 = np.count_nonzero(results == 3) / 10000
+print(f"Proportion with 3 girls: {p3}")
+```
+
+```{python}
+# Run this chunk to check your answer is plausible
+_ = ok.grade('q_03_3_girls')
+```
+
+## Done
+
+You're finished with the assignment!  Be sure to...
+
+- **run all the tests** (the next cell has a shortcut for that),
+- **Save and Checkpoint** from the "File" menu.
+- Finally, **restart** the kernel for this notebook, and **run all the cells**,
+  to check that the notebook still works without errors.  Use the
+  "Kernel" menu, and choose "Restart and Run All".  If you find any
+  problems, go back and fix them, save the notebook, and restart / run
+  all again, before submitting.
+
+```{python}
+# For your convenience, you can run this cell to run all the tests at once!
+import os
+_ = [ok.grade(q[:-3]) for q in os.listdir("tests") if q.startswith('q')]
+```
