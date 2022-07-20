@@ -135,7 +135,7 @@ class JuryPage:
         icons = self.pop_icons
         for juror, xy in self.population:
             x, y = xy - self.pop_icon_size / 2
-            renderPDF.draw(icons[juror], self.canvas, *xy)
+            renderPDF.draw(icons[juror], self.canvas, x, y)
 
     def calc_chairs(self):
         chair = self.chair_icons['chair']
