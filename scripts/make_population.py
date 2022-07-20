@@ -20,7 +20,7 @@ IMAGE_PATH = Path(__file__).parent / '..' / 'images'
 class JuryPage:
 
     def __init__(self,
-                 out_fname='jury.pdf',
+                 out_path,
                  image_path=Path(__file__).parent / '..' / 'images',
                  n_iters=100,
                  max_count=40,
@@ -32,7 +32,8 @@ class JuryPage:
                  n_pop=500,
                  pop_bound_scale=0.8,
                 ):
-        self.out_fname = out_fname
+        self._canvas = None
+        self.out_path = out_path
         self.image_path = Path(image_path)
         if page_width is None:
             page_width = page_height * 16 / 9  # Widescreen slides
@@ -50,8 +51,6 @@ class JuryPage:
         self.chair_icon_scale = chair_icon_scale
         self.n_pop = n_pop
         self.pop_bound_scale = pop_bound_scale
-        self.canvas = canvas.Canvas(out_fname,
-                                    pagesize=(page_width, page_height))
         self.counts = np.zeros(n_iters) + np.nan
         self.pop_right = round(page_width / 2.5)
         self.jury_left = self.pop_right + margins[0] * 2
@@ -62,8 +61,34 @@ class JuryPage:
              700,
              page_width - margins[-2],
              page_height - margins[-1]])
-        self.make_pop_panel()
-        self.make_chairs()
+        self.calc_pop_panel()
+        self.calc_chairs()
+        self.reset(out_path)
+
+    def reset_counts(self):
+        self.jury = None
+        self.current_count = np.nan
+        self.counts = np.zeros(self.n_iters) + np.nan
+        self.n_samples = 0
+
+    def reset_canvas(self, out_path, draw=True):
+        self.out_path = str(out_path)
+        self._canvas = canvas.Canvas(
+            self.out_path,
+            pagesize=(self.page_width, self.page_height))
+        if draw:
+            self.draw_background()
+
+    def reset(self, out_path, draw=True):
+        self.reset_canvas(out_path, draw)
+        self.reset_counts()
+        self._current_hist = None
+
+    @property
+    def canvas(self):
+        if self._canvas is None:
+            self.reset_canvas(self.out_path)
+        return self._canvas
 
     def _get_icon(self, froot):
         pth = self.image_path / f'{froot}.svg'
@@ -78,7 +103,7 @@ class JuryPage:
                 v.scale(*scales)
         return new_icons
 
-    def make_pop_panel(self, retries=1000):
+    def calc_pop_panel(self, retries=1000):
         pop_bb = np.array(self.pop_bb)
         icons = self.pop_icons
         icon_size = np.array(icons['black'].getBounds()[2:])
@@ -99,14 +124,20 @@ class JuryPage:
                     break
             else:
                 raise RuntimeError(f'Bailed after placing {i} icons')
-            renderPDF.draw(icons[juror], self.canvas, *xy)
             positions[i, :] = xy
         centers = positions + icon_size / 2
         self.population = np.array(list(zip(samples, centers)), dtype=object)
+        self.pop_icon_size = icon_size
+
+    def draw_pop(self):
         self.canvas.setFont('Helvetica', 60)
         self.canvas.drawString(200, 925, 'Population')
+        icons = self.pop_icons
+        for juror, xy in self.population:
+            x, y = xy - self.pop_icon_size / 2
+            renderPDF.draw(icons[juror], self.canvas, *xy)
 
-    def make_chairs(self):
+    def calc_chairs(self):
         chair = self.chair_icons['chair']
         chair_size = np.array(chair.getBounds()[2:])
         chair_height = chair_size[1]
@@ -115,24 +146,32 @@ class JuryPage:
         self.chair_x = (np.arange(12) * chair_gap) + self.jury_bb[0]
         self.member_corners = np.zeros((12, 2))
         for i, x in enumerate(self.chair_x):
-            renderPDF.draw(chair, self.canvas, x,
-                           self.jury_bb[1])
             m_y = self.jury_bb[1] + chair_height * 1.2
             self.member_corners[i, :] = (x, m_y)
+
+    def draw_chairs(self):
+        chair = self.chair_icons['chair']
+        for i, x in enumerate(self.chair_x):
+            renderPDF.draw(chair, self.canvas, x,
+                           self.jury_bb[1])
         self.canvas.drawString(self.pop_right + 500, 925, 'Jury')
 
-    def make_members(self, members):
+    def draw_members(self, members):
         if hasattr(members, 'shape') and len(members.shape) == 2:
             members = members[:, 0]
         if len(members) < 12:
             members = tuple(members) + (None,) * (12 - len(members))
         for i, ((x, y), member) in enumerate(zip(self.member_corners, members)):
-            if member:
-                renderPDF.draw(self.chair_icons[member], self.canvas,
-                               x, y)
+            if member is None:
+                continue
+            renderPDF.draw(self.chair_icons[member], self.canvas, x, y)
 
-    def make_hist(self):
-        plt.figure(figsize=(12, 5.75))
+    def draw_background(self):
+        self.draw_pop()
+        self.draw_chairs()
+
+    def calc_hist(self):
+        fig = plt.figure(figsize=(12, 5.75))
         plt.hist(self.counts[~np.isnan(self.counts)], bins=np.arange(13))
         plt.axis([0, 12, 0, self.max_count])
         plt.xticks(np.arange(13))
@@ -140,41 +179,100 @@ class JuryPage:
         plt.ylabel('Count')
         fig_fo = BytesIO()
         plt.savefig(fig_fo, dpi=600, format='svg')
+        plt.close(fig)
         fig_fo.seek(0)
-        return svg2rlg(fig_fo)
+        self.current_hist = svg2rlg(fig_fo)
 
-    def circle_pop(self, element):
+    def draw_hist(self):
+        renderPDF.draw(self.current_hist,
+                       self.canvas,
+                       self.pop_right,
+                       self.margins[1])
+
+    def draw_circle_pop(self, element):
         name, center = element
         r = self.pop_icons['black'].getBounds()[-1] * 0.75
         c = self.canvas
+        c.saveState()
         c.setStrokeColorRGB(1, 0, 0)
         c.setLineWidth(5)
         c.circle(center[0], center[1], r, stroke=1, fill=0)
-        c.setStrokeColorRGB(0, 0, 0)
+        c.restoreState()
 
-    def get_sample(self):
-        sample = self.rng.choice(self.population, size=12)
-        n_black = len([s[0] for s in sample if s[0] == 'black'])
-        return sample, n_black
+    def sample_pop(self):
+        self.jury = self.rng.choice(self.population, size=12)
+        self.current_count = len([s[0] for s in self.jury if s[0] == 'black'])
+        self.counts[self.n_samples] = self.current_count
+        self.n_samples += 1
+        return self.jury
 
+    def draw_jury(self):
+        self.draw_members(self.jury[:, 0])
+
+    def draw_count(self, count=None):
+        c = self.canvas
+        c.saveState()
+        c.setFont('Helvetica', 60)
+        if count is None:
+            count = '?'
+            if not np.isnan(self.current_count):
+                count = self.current_count
+        c.drawString(self.pop_right + 420, 575, f'Count = {count}')
+        c.restoreState()
+
+    def save(self):
+        self.canvas.save()
 
 def main():
-    jp = JuryPage(n_iters = 100,
-                  page_height = 1000,
-                  margins = [50, 50, 50, 50])
-    sample, n_black = jp.get_sample()
-    for i, s in enumerate(sample):
-        members = [None] * 12
-        members[i] = s[0]
-        jp.make_members(members)
-        jp.circle_pop(s)
-    c = jp.canvas
-    c.setFont('Helvetica', 60)
-    c.drawString(jp.pop_right + 420, 575, f'Count = {n_black}')
-    jp.counts[0] = n_black
-    plt_svg = jp.make_hist()
-    renderPDF.draw(plt_svg, jp.canvas, jp.pop_right, jp.margins[1])
-    c.save()
+    opp = Path() / 'out_pdfs'
+    jp = JuryPage(
+        opp / 'hypo_at_first.pdf',
+        n_iters = 100,
+        page_height = 1000,
+        margins = [50, 50, 50, 50])
+    jp.save()
+    n_slow = 3
+    for i in range(n_slow):
+        jury = jp.sample_pop()
+        count = jp.current_count
+        prefix = f'hypo_jury{i}'
+        for j, juror in enumerate(jury):
+            jp.reset_canvas(opp / f'{prefix}_{j:02d}_chair_no.pdf')
+            jp.draw_circle_pop(juror)
+            jp.draw_members(jury[:j])
+            if i > 0:
+                jp.draw_hist()
+            jp.save()
+            jp.reset_canvas(opp / f'{prefix}_{j:02d}_chair_yes.pdf')
+            jp.draw_circle_pop(juror)
+            jp.draw_members(jury[:j + 1])
+            if i > 0:
+                jp.draw_hist()
+            jp.save()
+        jp.reset_canvas(opp / f'{prefix}_seated_at_first.pdf')
+        jp.draw_members(jury)
+        if i > 0:
+            jp.draw_hist()
+        jp.save()
+        jp.reset_canvas(opp / f'{prefix}_seated_counted.pdf')
+        jp.draw_members(jury)
+        jp.draw_count(count)
+        if i > 0:
+            jp.draw_hist()
+        jp.save()
+        jp.reset_canvas(opp / f'{prefix}_seated_hist.pdf')
+        jp.draw_members(jury)
+        jp.draw_count(count)
+        jp.calc_hist()
+        jp.draw_hist()
+        jp.save()
+    prefix = 'hypo_zall'
+    jp.reset_canvas(opp / f'{prefix}.pdf')
+    for i in range(jp.n_iters - n_slow):
+        jp.sample_pop()
+    jp.calc_hist()
+    jp.draw_hist()
+    jp.save()
 
 
 if __name__ == "__main__":
