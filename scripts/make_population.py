@@ -23,7 +23,7 @@ class JuryPage:
                  out_path,
                  image_path=Path(__file__).parent / '..' / 'images',
                  n_iters=100,
-                 max_count=40,
+                 max_count=0.33,
                  page_height=1000,
                  page_width=None,
                  margins=(50, 50, 50, 50),
@@ -38,7 +38,7 @@ class JuryPage:
         if page_width is None:
             page_width = page_height * 16 / 9  # Widescreen slides
         self.n_iters = n_iters
-        self.max_count = max_count
+        self.max_count = (max_count if max_count > 1 else n_iters * max_count)
         self.page_height = page_height
         self.page_width = page_width
         self.margins = margins
@@ -76,6 +76,11 @@ class JuryPage:
         self._canvas = canvas.Canvas(
             self.out_path,
             pagesize=(self.page_width, self.page_height))
+        if draw:
+            self.draw_background()
+
+    def new_page(self, draw=True):
+        self._canvas.showPage()
         if draw:
             self.draw_background()
 
@@ -226,43 +231,36 @@ class JuryPage:
 def main():
     opp = Path() / 'out_pdfs'
     jp = JuryPage(
-        opp / 'hypo_at_first.pdf',
+        opp / 'swain_all.pdf',
         n_iters = 100,
         page_height = 1000,
         margins = [50, 50, 50, 50])
-    jp.save()
+    jp.new_page()
     n_slow = 3
     for i in range(n_slow):
         jury = jp.sample_pop()
         count = jp.current_count
-        prefix = f'hypo_jury{i}'
         for j, juror in enumerate(jury):
-            jp.reset_canvas(opp / f'{prefix}_{j:02d}_chair_no.pdf')
             jp.draw_circle_pop(juror)
             jp.draw_members(jury[:j])
             if i > 0:
                 jp.draw_hist()
-            jp.save()
-            jp.reset_canvas(opp / f'{prefix}_{j:02d}_chair_yes.pdf')
+            jp.new_page()
             jp.draw_circle_pop(juror)
             jp.draw_members(jury[:j + 1])
             if i > 0:
                 jp.draw_hist()
-            jp.save()
-        jp.reset_canvas(opp / f'{prefix}_seated_counted.pdf')
+            jp.new_page()
         jp.draw_members(jury)
         jp.draw_count(count)
         if i > 0:
             jp.draw_hist()
-        jp.save()
-        jp.reset_canvas(opp / f'{prefix}_seated_hist.pdf')
+        jp.new_page()
         jp.draw_members(jury)
         jp.draw_count(count)
         jp.calc_hist()
         jp.draw_hist()
-        jp.save()
-    prefix = 'hypo_zall'
-    jp.reset_canvas(opp / f'{prefix}.pdf')
+    jp.new_page()
     for i in range(jp.n_iters - n_slow):
         jp.sample_pop()
     jp.calc_hist()
