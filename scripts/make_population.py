@@ -249,11 +249,6 @@ def main():
             if i > 0:
                 jp.draw_hist()
             jp.save()
-        jp.reset_canvas(opp / f'{prefix}_seated_at_first.pdf')
-        jp.draw_members(jury)
-        if i > 0:
-            jp.draw_hist()
-        jp.save()
         jp.reset_canvas(opp / f'{prefix}_seated_counted.pdf')
         jp.draw_members(jury)
         jp.draw_count(count)
