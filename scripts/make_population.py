@@ -230,6 +230,7 @@ class JuryPage:
     def save(self):
         self.canvas.save()
 
+
 def main():
     opp = Path() / 'out_pdfs'
     jp = JuryPage(
@@ -266,6 +267,11 @@ def main():
         jp.sample_pop()
     jp.calc_hist()
     jp.save()
+
+
+# A Bezier curve
+# https://docs.reportlab.com/reportlab/userguide/ch2_graphics/
+# my_canvas.bezier(10, 10, 10, 200, 500, 300, 500, 500)
 
 
 if __name__ == "__main__":
