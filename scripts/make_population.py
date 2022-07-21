@@ -175,7 +175,7 @@ class JuryPage:
         self.draw_pop()
         self.draw_chairs()
 
-    def calc_hist(self):
+    def calc_hist(self, draw=True):
         fig = plt.figure(figsize=(12, 5.75))
         plt.hist(self.counts[~np.isnan(self.counts)], bins=np.arange(13))
         plt.axis([0, 12, 0, self.max_count])
@@ -187,6 +187,8 @@ class JuryPage:
         plt.close(fig)
         fig_fo.seek(0)
         self.current_hist = svg2rlg(fig_fo)
+        if draw:
+            self.draw_hist()
 
     def draw_hist(self):
         renderPDF.draw(self.current_hist,
@@ -259,12 +261,10 @@ def main():
         jp.draw_members(jury)
         jp.draw_count(count)
         jp.calc_hist()
-        jp.draw_hist()
     jp.new_page()
     for i in range(jp.n_iters - n_slow):
         jp.sample_pop()
     jp.calc_hist()
-    jp.draw_hist()
     jp.save()
 
 
